@@ -5,20 +5,20 @@
 
 struct Elf {
 	uint32_t e_magic;	// must equal ELF_MAGIC
-	uint8_t e_elf[12];
-	uint16_t e_type;
-	uint16_t e_machine;
-	uint32_t e_version;
-	uint32_t e_entry;
-	uint32_t e_phoff;
-	uint32_t e_shoff;
-	uint32_t e_flags;
-	uint16_t e_ehsize;
-	uint16_t e_phentsize;
-	uint16_t e_phnum;
-	uint16_t e_shentsize;
-	uint16_t e_shnum;
-	uint16_t e_shstrndx;
+	uint8_t e_elf[12];      
+	uint16_t e_type;        // specifies whether the object is relocatablem executable, shared, or core, respectively
+	uint16_t e_machine;     // specifies specific target instruction set architecture (ex. 0x03 = x86)
+	uint32_t e_version;     // set to 1 for the original version of ELF
+	uint32_t e_entry;       // entry point for the process to start executing
+	uint32_t e_phoff;       // e_phoff points to the start of the program header table
+	uint32_t e_shoff;       // points to the start of the section header table 
+	uint32_t e_flags;       // flags dependent of target architecture
+	uint16_t e_ehsize;      // size of this header
+	uint16_t e_phentsize;   // size of program header table entry
+	uint16_t e_phnum;       // contains number of entries in the program header table
+	uint16_t e_shentsize;   // contains size of the section header table entry
+	uint16_t e_shnum;       // contains the number of entries in the section header table
+	uint16_t e_shstrndx;    // contains the section header entry that contains the section names
 };
 
 struct Proghdr {
