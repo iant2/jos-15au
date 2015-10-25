@@ -1,0 +1,76 @@
+Ian Turner
+lab 2 answers
+
+1)
+Assuming that the following JOS kernel code is correct,
+what type should variable x have, uintptr_t or physaddr_t?
+
+	/* mystery_t */ x;
+	char* value = return_a_pointer();
+	*value = 10;
+	x = (mystery_t) value;
+
+x should be a uintptr_t because C pointers are virtual addresses, any reference
+to memory will be translated as a virtual address. So casting value to uintptr_t
+will give you a number but tou can in turn cast it back to a pointer and
+dereference it to get its vlaue, doing this as a physaddr_t would be confusing
+because the MMU will translate this as a virtual address and you wont get what
+you want.
+
+2)
+	     dir entry	     base virtual address	     points to logically
+//////////////////////////////////////////////////////////////////////////////
+kernal stack 
+	      959 	     	      0010e000 	     	      efff8000 
+
+pages array
+	      956 	     	      00119000 	     	      f0119000 
+phys mem 
+	      960 	     	      00000000 	     	      f0000000 
+	      961 	     	      00400000 	     	      f0400000 
+	      962 	     	      00800000 	     	      f0800000 
+	      963 	     	      00c00000 	     	      f0c00000 
+	      964 	     	      01000000 	     	      f1000000 
+	      965 	     	      01400000 	     	      f1400000 
+	      966 	     	      01800000 	     	      f1800000 
+	      967 	     	      01c00000 	     	      f1c00000 
+	      968 	     	      02000000 	     	      f2000000 
+	      969 	     	      02400000 	     	      f2400000 
+	      970 	     	      02800000 	     	      f2800000 
+	      971 	     	      02c00000 	     	      f2c00000 
+	      972 	     	      03000000 	     	      f3000000 
+	      973 	     	      03400000 	     	      f3400000 
+	      974 	     	      03800000 	     	      f3800000 
+	      975 	     	      03c00000 	     	      f3c00000 
+	      976 	     	      04000000 	     	      f4000000 
+	      977 	     	      04400000 	     	      f4400000 
+	      978 	     	      04800000 	     	      f4800000 
+	      979 	     	      04c00000 	     	      f4c00000 
+	      980 	     	      05000000 	     	      f5000000 
+	      981 	     	      05400000 	     	      f5400000 
+	      982 	     	      05800000 	     	      f5800000 
+	      983 	     	      05c00000 	     	      f5c00000 
+	      984 	     	      06000000 	     	      f6000000 
+	      985 	     	      06400000 	     	      f6400000 
+	      986 	     	      06800000 	     	      f6800000 
+	      987 	     	      06c00000 	     	      f6c00000 
+	      988 	     	      07000000 	     	      f7000000 
+	      989 	     	      07400000 	     	      f7400000 
+	      990 	     	      07800000 	     	      f7800000 
+	      991 	     	      07c00000 	     	      f7c00000 
+
+
+3)When we initialized the memory in meminit, we set permission bits to stop the user processes from accessing any kernal memory, specifically we never set the user bit for any entries in any page tables except for when we mapped 'pages' at linear address UPAGES. The we specifically don’t give write permissions for any address spaces above ULIM, which is where the kernal reserves space for its stack, in addition to the remapped physical memory starting at 0xf0000000
+
+4)Since we only have one page directory right now, we can only point to up to 1000 page tables. These tables in turn cant point to 1000 pages. Therefore we can support one million pages with this operating system in its current form.
+
+5) Mem management overhead = 4KB + 4MB + sizeof(physical page allocator)
+
+	physical page allocator: npages * sizeof(Struct PageInfo)
+
+	kern_pgdir = PGSIZE = 4KB
+	
+	// assuming we allocated all 1000 page tables
+	page tables = 1000 * PGSIZE = 4 MB
+
+6) After we enable the pain g bit on cr0,paging is enabled. We operate at a low eip for one instruction until we jump above KERNBASE  (mov $relocated, %ecx) in the next command, we then dump the stack and base pointer and jump to init.c. What enables this is the primitive entry_pgdir that does the translation from virtual addresses [KERNBASE, KERNBASE+4MB) to physical addresses [0, 4MB]. We need to do this because C code is linked to run at KERNBASE+1MB. The transition to a larger memory manager is necessary because even though the first 4 MB were enough for one page table and enough to get us through early boot, we obviously need more memory.
