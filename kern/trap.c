@@ -58,14 +58,132 @@ static const char *trapname(int trapno)
 	return "(unknown trap)";
 }
 
+/*
+Gate descriptors for interrupts and traps
+struct Gatedesc {
+	unsigned gd_off_15_0 : 16;   // low 16 bits of offset in segment
+	unsigned gd_sel : 16;        // segment selector
+	unsigned gd_args : 5;        // # args, 0 for interrupt/trap gates
+	unsigned gd_rsv1 : 3;        // reserved(should be zero I guess)
+	unsigned gd_type : 4;        // type(STS_{TG,IG32,TG32})
+	unsigned gd_s : 1;           // must be 0 (system)
+	unsigned gd_dpl : 2;         // descriptor(meaning new) privilege level
+	unsigned gd_p : 1;           // Present
+	unsigned gd_off_31_16 : 16;  // high bits of offset in segment
+};
+*/
 
 void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
 
-	// LAB 3: Your code here.
+	extern void trapHandlerEntry0();
+	extern void trapHandlerEntry1();
+	extern void trapHandlerEntry2();
+	extern void trapHandlerEntry3();
+	extern void trapHandlerEntry4();
+	extern void trapHandlerEntry5();
+	extern void trapHandlerEntry6();
+	extern void trapHandlerEntry7();
+	extern void trapHandlerEntry8();
+	extern void trapHandlerEntry10();
+	extern void trapHandlerEntry11();
+	extern void trapHandlerEntry12();
+	extern void trapHandlerEntry13();
+	extern void trapHandlerEntry14();
+	extern void trapHandlerEntry16();
+	extern void trapHandlerEntry17();
+	extern void trapHandlerEntry18();
+	extern void trapHandlerEntry19();
+	extern void trapHandlerEntry20();
+	extern void trapHandlerEntry21();
+	extern void trapHandlerEntry22();
+	extern void trapHandlerEntry23();
+	extern void trapHandlerEntry24();
+	extern void trapHandlerEntry25();
+	extern void trapHandlerEntry26();
+	extern void trapHandlerEntry27();
+	extern void trapHandlerEntry28();
+	extern void trapHandlerEntry29();
+	extern void trapHandlerEntry30();
+	extern void trapHandlerEntry31();
+	// #define SETGATE(gate, istrap, sel, off, dpl)
+	// Set up a normal interrupt/trap gate descriptor.
+	// - istrap: 1 for a trap (= exception) gate
+	//			 0 for an interrupt gate.
 
+	    //   see section 9.6.1.3 of the i386 reference: "The difference between
+	    //   an interrupt gate and a trap gate is in the effect on IF (the
+	    //   interrupt-enable flag). An interrupt that vectors through an
+	    //   interrupt gate resets IF, thereby preventing other interrupts from
+	    //   interfering with the current interrupt trapHandlerEntry. A subsequent IRET
+	    //   instruction restores IF to the value in the EFLAGS image on the
+	    //   stack. An interrupt through a trap gate does not change IF."
+
+	// - sel: Code segment selector for interrupt/trap trapHandlerEntry
+	// - off: Offset in code segment for interrupt/trap trapHandlerEntry
+	// - dpl: Descriptor Privilege Level -
+	//	  the privilege level required for software to invoke
+	//	  this interrupt/trap gate explicitly using an int instruction.
+	//		HIGHEST    Faults except debug faults
+	//		Trap instructions INTO, INT n, INT 3
+	//		Debug traps for this instruction
+	//		Debug faults for next instruction
+	//		NMI interrupt
+	//		LOWEST     INTR interrupt
+
+	// LAB 3: Your code here.
+	// 9.8.1 Interrupt 0 -- Divide Error
+	SETGATE(idt[0], 0, 0x8, trapHandlerEntry0, 0);
+	// 9.8.2 Interrupt 1 -- Debug Exceptions
+    SETGATE(idt[1], 0, 0x8, trapHandlerEntry1, 0);
+    // non maskable interupt 
+    SETGATE(idt[2], 0, 0x8, trapHandlerEntry2, 0);
+    //9.8.3 Interrupt 3 -- Breakpoint
+    SETGATE(idt[3], 0, 0x8, trapHandlerEntry3, 3); // dpl = 3 becuase user can invoke a debug exception
+    										  // therefore the cpl can be set to 3
+    // 9.8.4 Interrupt 4 -- Overflow
+    SETGATE(idt[4], 0, 0x8, trapHandlerEntry4, 0);
+    // 9.8.5 Interrupt 5 -- Bounds Check
+    SETGATE(idt[5], 0, 0x8, trapHandlerEntry5, 0);
+    // 9.8.6 Interrupt 6 -- Invalid Opcode
+    SETGATE(idt[6], 0, 0x8, trapHandlerEntry6, 0);
+    // 9.8.7 Interrupt 7 -- Coprocessor Not Available
+    SETGATE(idt[7], 0, 0x8, trapHandlerEntry7, 0);
+    // 9.8.8 Interrupt 8 -- Double Fault
+    SETGATE(idt[8], 0, 0x8, trapHandlerEntry8, 0);
+
+    //9.8.9 Interrupt 9 -- Coprocessor Segment Overrun
+
+    //9.8.10 Interrupt 10 -- Invalid TSS
+    SETGATE(idt[10], 0, 0x8, trapHandlerEntry10, 0);
+    //9.8.11 Interrupt 11 -- Segment Not Present
+    SETGATE(idt[11], 0, 0x8, trapHandlerEntry11, 0);
+    //9.8.12 Interrupt 12 -- Stack Exception
+    SETGATE(idt[12], 0, 0x8, trapHandlerEntry12, 0);
+    //9.8.13 Interrupt 13 -- General Protection Exception
+    SETGATE(idt[13], 0, 0x8, trapHandlerEntry13, 0);
+    //9.8.14 Interrupt 14 -- Page Fault
+    SETGATE(idt[14], 0, 0x8, trapHandlerEntry14, 0);
+    // no 15 (T_RES)
+
+    SETGATE(idt[16], 0, 0x8, trapHandlerEntry16, 0);
+    SETGATE(idt[17], 0, 0x8, trapHandlerEntry17, 0);
+    SETGATE(idt[18], 0, 0x8, trapHandlerEntry18, 0);
+    SETGATE(idt[19], 0, 0x8, trapHandlerEntry19, 0);
+    SETGATE(idt[20], 0, 0x8, trapHandlerEntry20, 0);
+    SETGATE(idt[21], 0, 0x8, trapHandlerEntry21, 0);
+    SETGATE(idt[22], 0, 0x8, trapHandlerEntry22, 0);
+    SETGATE(idt[23], 0, 0x8, trapHandlerEntry23, 0);
+    SETGATE(idt[24], 0, 0x8, trapHandlerEntry24, 0);
+    SETGATE(idt[25], 0, 0x8, trapHandlerEntry25, 0);
+    SETGATE(idt[26], 0, 0x8, trapHandlerEntry26, 0);
+    SETGATE(idt[27], 0, 0x8, trapHandlerEntry27, 0);
+    SETGATE(idt[28], 0, 0x8, trapHandlerEntry28, 0);
+    SETGATE(idt[29], 0, 0x8, trapHandlerEntry29, 0);
+    SETGATE(idt[30], 0, 0x8, trapHandlerEntry30, 0);
+    SETGATE(idt[31], 0, 0x8, trapHandlerEntry31, 0);
 	// Per-CPU setup 
 	trap_init_percpu();
 }

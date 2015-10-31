@@ -169,6 +169,7 @@ mem_init(void)
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
+	envs = (struct Env *)boot_alloc(NENV * sizeof(struct Env));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -196,6 +197,7 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+
 	boot_map_region(kern_pgdir, UPAGES, ROUNDUP(npages * sizeof(struct PageInfo), PGSIZE), PADDR(pages), PTE_U|PTE_P);
 	boot_map_region(kern_pgdir, (uintptr_t)pages, ROUNDUP(npages * sizeof(struct PageInfo), PGSIZE), PADDR(pages), PTE_W);
 
@@ -206,6 +208,8 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
+
+	boot_map_region(kern_pgdir, UENVS, PTSIZE, PADDR(envs), PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -218,6 +222,7 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+
 	boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 
 
@@ -229,6 +234,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+
 	boot_map_region(kern_pgdir, KERNBASE, 0xFFFFFFFF - KERNBASE +1, 0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
@@ -459,7 +465,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		}
 	}
 	
-	// return address of new index in page table, use address of because array noptation dereferences
+	// return address of new index in page table, use "address of" because array notation dereferences
 	return &(page_table_addr[PTX(va)]);
 }
 
@@ -838,13 +844,14 @@ check_kern_pgdir(void)
 	pgdir = kern_pgdir;
 
 	// check pages array
-	cprintf("\tdir entry\tbase virtual address\tpoints to logically\n");
-	cprintf("pages array\n");
+	//cprintf("\tdir entry\tbase virtual address\tpoints to logically\n");
+	//cprintf("pages array\n");
 	uint32_t pdx = 0;
 	n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
 	//cprintf("kern_pgdir %08x \n", kern_pgdir);
 	//cprintf("check_va2pa(pgdir, pgdir) %08x \n", check_va2pa(pgdir, (uintptr_t)&pgdir[0]));
 	for (i = 0; i < n; i += PGSIZE){
+		/*
 		if (PDX(UPAGES + i) != pdx){
 			//cprintf("entry %d \n", i / 4096);
 			cprintf("\t %d \t", PDX(UPAGES + i));
@@ -854,9 +861,11 @@ check_kern_pgdir(void)
 			cprintf("\t %08x \t", PADDR(pages) + i);
 			cprintf("\t %08x \n", pages + i);
 		}
-		//cprintf("pgdir_walk %08x \n", *(pgdir_walk(pgdir, (void *)(UPAGES + i), 0)));
-		//cprintf("UPAGES + i: %08x \n", UPAGES + i);
-		//cprintf("PADDR(pages) + i: %08x \n", PADDR(pages) + i);
+
+		cprintf("pgdir_walk %08x \n", *(pgdir_walk(pgdir, (void *)(UPAGES + i), 0)));
+		cprintf("UPAGES + i: %08x \n", UPAGES + i);
+		cprintf("PADDR(pages) + i: %08x \n", PADDR(pages) + i);
+		*/
 		assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
 
 	// check envs array (new test for lab 3)
@@ -867,8 +876,9 @@ check_kern_pgdir(void)
 
 	// check phys mem
 	pdx = 0;
-	cprintf("phys mem \n");
+	//cprintf("phys mem \n");
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE){
+		/*
 		if (PDX(KERNBASE + i) != pdx){
 			//cprintf("entry %d \n", i / 4096);
 			cprintf("\t %d \t", PDX(KERNBASE + i));
@@ -878,13 +888,15 @@ check_kern_pgdir(void)
 			cprintf("\t %08x \t", i);
 			cprintf("\t %08x \n", KERNBASE + i);
 		}
+		*/
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
 	}
 
 	// check kernel stack
-	cprintf("kernal stack \n");
+	//cprintf("kernal stack \n");
 	pdx = 0;
 	for (i = 0; i < KSTKSIZE; i += PGSIZE){
+		/*
 		if (PDX(KSTACKTOP - KSTKSIZE + i) != pdx){
 			//cprintf("entry %d \n", i / 4096);
 			cprintf("\t %d \t", PDX(KSTACKTOP - KSTKSIZE + i));
@@ -894,6 +906,7 @@ check_kern_pgdir(void)
 			cprintf("\t %08x \t", PADDR(bootstack) + i);
 			cprintf("\t %08x \n", KSTACKTOP - KSTKSIZE + i);
 		}
+		*/
 		assert(check_va2pa(pgdir, KSTACKTOP - KSTKSIZE + i) == PADDR(bootstack) + i);
 	}
 	assert(check_va2pa(pgdir, KSTACKTOP - PTSIZE) == ~0);
