@@ -108,6 +108,8 @@ trap_init(void)
 	extern void trapHandlerEntry29();
 	extern void trapHandlerEntry30();
 	extern void trapHandlerEntry31();
+
+	extern void trapHandlerEntry48();
 	// #define SETGATE(gate, istrap, sel, off, dpl)
 	// Set up a normal interrupt/trap gate descriptor.
 	// - istrap: 1 for a trap (= exception) gate
@@ -184,6 +186,9 @@ trap_init(void)
     SETGATE(idt[29], 0, 0x8, trapHandlerEntry29, 0);
     SETGATE(idt[30], 0, 0x8, trapHandlerEntry30, 0);
     SETGATE(idt[31], 0, 0x8, trapHandlerEntry31, 0);
+
+    // User invoking a system call, DPL=3
+    SETGATE(idt[48], 0, 0x8, trapHandlerEntry48, 3);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -261,6 +266,40 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	struct PushRegs * pushRegs;
+	switch(tf->tf_trapno){
+		case T_PGFLT:
+			cprintf("page fault!\n");
+			return page_fault_handler(tf);
+		case T_BRKPT:
+			cprintf("breakpoint!\n");
+			return monitor(tf);
+		case T_SYSCALL:
+			cprintf("system call! \n");
+			pushRegs = &tf->tf_regs;
+			//                            sys call number,  arguments......
+			pushRegs->reg_eax = syscall(pushRegs->reg_eax, pushRegs->reg_edx, pushRegs->reg_ecx, pushRegs->reg_ebx, pushRegs->reg_edi, pushRegs->reg_esi);
+			//print_regs(pushRegs);
+
+			return;
+	}
+
+	/*
+	if (tf->tf_trapno == T_PGFLT)
+		page_fault_handler(tf);
+
+	if(tf->tf_trapno == T_BRKPT){
+		return monitor(tf);
+	}
+
+	// syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
+	if(tf->tf_trapno == T_SYSCALL){
+		struct PushRegs * pushRegs = &(tf->tf_regs);
+		//       sys call number,  arguments......
+		pushRegs->reg_eax = syscall(pushRegs->reg_eax, pushRegs->reg_edx, pushRegs->reg_ecx, pushRegs->reg_ebx, pushRegs->reg_edi, pushRegs->reg_esi);
+		return;
+	}
+	*/
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -322,6 +361,11 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
+	if ((tf->tf_cs & 3) != 3) {
+		// Trapped from kernel mode.
+		panic("page_fault_handler: page fault happened in kernel mode!\n");
+		
+	}
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.

@@ -664,6 +664,35 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+	// 'va' and 'len' need not be page-aligned
+	uintptr_t start = ROUNDDOWN((uintptr_t)va, PGSIZE);
+	uintptr_t end = ROUNDUP((uintptr_t)(va + len), PGSIZE);
+
+	// If there is an error, set the 'user_mem_check_addr' variable to the first
+	// erroneous virtual address.
+	user_mem_check_addr = (uintptr_t) va;
+
+	pte_t * page_table_entry;
+	int page_table_perm;
+	for (; start < end; start += PGSIZE){
+		// return address of new index in page table
+		page_table_entry = pgdir_walk(env->env_pgdir, (void*)start, 0);
+
+		// make sure pgdirwalk returned a valid entry
+		if (page_table_entry == NULL)
+			return -E_FAULT;
+
+		// A user program can access a virtual address if 
+		//(1) the address is below ULIM,
+		//and 
+		//(2) the page table gives it permission.
+		page_table_perm = *page_table_entry & (perm | PTE_P);
+		if(!(start < ULIM && (page_table_perm == (perm | PTE_P))))
+			return -E_FAULT;
+
+		// DO THIS, fails buggyhello2 otherwise
+		user_mem_check_addr = start + PGSIZE;
+	}
 
 	return 0;
 }

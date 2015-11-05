@@ -82,8 +82,9 @@
  TRAPHANDLER(trapHandlerEntry29, 29);
  TRAPHANDLER(trapHandlerEntry30, 30);
  TRAPHANDLER(trapHandlerEntry31, 31);
- 
 
+ //system call from the user
+ TRAPHANDLER_NOEC(trapHandlerEntry48, T_SYSCALL);
 
 
 /*
@@ -91,19 +92,21 @@
  * 
  */
  _alltraps:
- 	#push values to make the stack look like a struct Trapframe
- 	#pushal instruction; it fits nicely with the layout of the struct Trapframe
-    pushal; 
-    push  %ds;
-    push  %es;
+ 	pushl %ds
+	pushl %es
 
-    #load GD_KD into %ds and %es
-    movl $GD_KD, %eax
+	// push values to make the stack look like a struct Trapframe
+	pushal
+	// load GD_KD into %ds and %es
+	// define GD_KD     0x10     // kernel data
+	movl $GD_KD, %eax
 	movw %ax, %ds
 	movw %ax, %es
 
-    # pushl %esp to pass a pointer to the Trapframe as an argument to trap()
-    push %esp;
+	// pushl %esp to pass a pointer to the Trapframe as an argument to trap()
+	pushl %esp
 
-    # call trap(can trap ever return?)
-    call trap;
+	// call trap
+	call trap
+
+	// can trap return?

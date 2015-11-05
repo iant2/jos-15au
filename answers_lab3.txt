@@ -19,3 +19,24 @@ invoke the kernel’s page fault handler (which is interrupt vector 14)?
     priveledges	were not present at the	time of	the call, this is one of the criteria for interupt 13. If the kernel allowed this to happen then programs
     in user space would	be able	to make	control	transfers to kernel space at will, this	could lead to problems.
 
+Question 3
+The breakpoint test case will either generate a break point exception or a general protection fault depending on how you initialized the break point entry in the IDT (i.e., your call to SETGATE from trap_init). Why? How do you need to set it up in order to get the breakpoint exception to work as specified above and what incorrect setup would cause it to trigger a general protection fault?
+
+    Interrupt 13 gets invoked for many reasons that do not cause other exceptions,
+    one of the reasons (per the documentation) is the violation of priveledge rules.
+    Since a breakpoint is somthing invoked by the user so we need to set the DPL in
+    SETGATE to 3 to correspond to the CPL. If SETAGTE is passed 0 then it returns a 
+    interrupt 13 becuase it violates the priveledge as described. We must set DPL to 3 to get the sepcififed handling.
+
+Question 4
+What do you think is the point of these mechanisms, particularly in light of what the user/softint test program does?
+
+    Like in question 2, it is important to allow different functionality for 
+    different situations, allowing the SETGATE calls to take different DPL settings
+    stops users from invoking exceptions that are really for the kernel. 
+
+Question 5
+
+What causes this page fault? You don’t need to fix it, but consider how you might and explain why it happens.
+
+    We programmed backtrace to pull five arguements off the stack, when we do this here we dont check if we go off the stack into unmapped memory. Because of this we can access unmapped memory and cause a page fault. To fix this we should add some code similar to mem_check_asert inside of backtrace to see if the user has permission there. 

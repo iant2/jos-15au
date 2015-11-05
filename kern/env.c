@@ -124,7 +124,7 @@ envid2env(envid_t envid, struct Env **env_store, bool checkperm)
 void
 env_init(void)
 {
-	cprintf("env Init \n");
+	// cprintf("env Init \n");
 	// Set up envs array
 	// LAB 3: Your code here.
 	uint32_t i;
@@ -179,7 +179,7 @@ env_setup_vm(struct Env *e)
 {
 	int i;
 	struct PageInfo *p = NULL;
-	cprintf("env setup vm \n");
+	// cprintf("env setup vm \n");
 	// Allocate a page for the page directory
 	if (!(p = page_alloc(ALLOC_ZERO)))
 		return -E_NO_MEM;
@@ -322,7 +322,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 static void
 region_alloc(struct Env *e, void *va, size_t len)
 {
-	cprintf("region alloc \n");
+	//cprintf("region alloc \n");
 	// LAB 3: Your code here.
 	// (But only if you need it for load_icode.)
 	//
@@ -407,7 +407,7 @@ load_icode(struct Env *e, uint8_t *binary)
 
 	//	same as in main.c
 
-	cprintf("load icode \n");
+	//cprintf("load icode \n");
 	// load each program segment (ignores ph flags)
 	struct Elf * elf = (struct Elf *)binary;
 
@@ -435,15 +435,15 @@ load_icode(struct Env *e, uint8_t *binary)
 			// The ELF header should have ph->p_filesz <= ph->p_memsz.
 			if (ph->p_filesz <= ph->p_memsz){
 				// allocate some physical memory and map it
-				cprintf("load icode regoin alloc \n");
+				//cprintf("load icode regoin alloc \n");
 				region_alloc(e, (void *)ph->p_va, ph->p_memsz);
 
 				// Load each program segment into virtual memory:
-				cprintf("load icode memcpy \n");
+				//cprintf("load icode memcpy \n");
 				memcpy((void *)ph->p_va, binary + ph->p_offset, ph->p_filesz);
 
 				//Any remaining memory bytes should be cleared to zero.
-				cprintf("load icode memset\n");
+				//cprintf("load icode memset\n");
             	if (ph->p_filesz < ph->p_memsz)
             		memset((void *)(ph->p_va + ph->p_filesz), 0, ph->p_memsz - ph->p_filesz);
 			} 
@@ -477,7 +477,7 @@ env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
 	struct Env * e;
-	cprintf("env create\n");
+	//cprintf("env create\n");
 
 	// allocated a new environment
 	if(env_alloc(&e, 0) < 0)
@@ -586,7 +586,7 @@ env_pop_tf(struct Trapframe *tf)
 void
 env_run(struct Env *e)
 {
-	cprintf("env run \n");
+	// cprintf("env run \n");
 	// Step 1: If this is a context switch (a new environment is running):
 	//	   1. Set the current environment (if any) back to
 	//	      ENV_RUNNABLE if it is ENV_RUNNING (think about
@@ -605,7 +605,7 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
-	cprintf("switch statement \n");
+	// cprintf("switch statement \n");
 	if (curenv){
 		// step 1: if this is a context switch set the surrent 
 		// env to runnable if it is running
@@ -614,26 +614,36 @@ env_run(struct Env *e)
 			case ENV_FREE:
 				// shouldnt happen
 				panic("env_run: curenv listed as free");
+				break;
+				
 			case ENV_DYING:
 				panic("env_run: curenv listed as dying");
+				break;
+
 			case ENV_RUNNABLE:
 				// shouldnt happen?
 				panic("env_run: curenv listed as runnable, not running");
+				break;
+
 			case ENV_RUNNING:
 				// context switch!
-				cprintf("context switch \n");
+				// cprintf("context switch \n");
 				curenv->env_status = ENV_RUNNABLE;
+				break;
+
 			case ENV_NOT_RUNNABLE:
 				// ENV_NOT_RUNNABLE
 				// shouldnt happen
 				panic("env_run: curenv listed as not runnable");
+				break;
+
 			default:
 				panic("env_run: curenv doesnt have a type");
 
 		}
 	}
 
-	cprintf("set up stuff \n");
+	// cprintf("set up stuff \n");
 	// 2. Set 'curenv' to the new environment,
 	curenv = e;
 	// 3. Set its status to ENV_RUNNING,
@@ -648,11 +658,11 @@ env_run(struct Env *e)
 	//	   registers and drop into user mode in the
 	//	   environment.
 
-	cprintf("pop trap frame \n");
-	cprintf("%08x \n", e->env_tf.tf_eip);
+	// cprintf("pop trap frame \n");
+	// cprintf("%08x \n", e->env_tf.tf_eip);
 	env_pop_tf(&e->env_tf);
 
-	cprintf("done\n");
+	// cprintf("done\n");
 	//panic("env_run not yet implemented");
 }
 /*
