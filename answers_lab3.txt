@@ -1,3 +1,8 @@
+Ian Turner
+lab 3
+
+this lab took me at least 24 hours, i really have no idea
+
 Question 1
 What is the purpose of having an individual handler function for each exception/interrupt? (i.e., if all exceptions/interrupts were delivered to the same h\
 andler, what feature that exists in the current implementation could not be provided?)
@@ -40,3 +45,5 @@ Question 5
 What causes this page fault? You don’t need to fix it, but consider how you might and explain why it happens.
 
     We programmed backtrace to pull five arguements off the stack, when we do this here we dont check if we go off the stack into unmapped memory. Because of this we can access unmapped memory and cause a page fault. To fix this we should add some code similar to mem_check_asert inside of backtrace to see if the user has permission there. 
+
+
