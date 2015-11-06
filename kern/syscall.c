@@ -21,9 +21,9 @@ sys_cputs(const char *s, size_t len)
 {
 	// Check that the user has permission to read memory [s, s+len).
 	// Destroy the environment if not.
-
+	// cprintf("cputs!\n");
 	// LAB 3: Your code here.
-
+	user_mem_assert(curenv, (void *)s, len, PTE_U);
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
 }
@@ -280,11 +280,53 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// Return any appropriate return value.
 	// LAB 3: Your code here.
 
-	panic("syscall not implemented");
+	//panic("syscall not implemented");
+	/*
+	enum {
+		SYS_cputs = 0,
+		SYS_cgetc,
+		SYS_getenvid,
+		SYS_env_destroy,
+		NSYSCALLS
+	};
+	*/
+	//cprintf("inside syscall, syscallno = %d \n", syscallno);
 
 	switch (syscallno) {
-	default:
-		return -E_INVAL;
+		// Handle all the systems calls listed in inc/syscall.h 
+		// by invoking the corresponding kernel function for each call
+		case SYS_cputs:
+			// Print a string to the system console.
+			// The string is exactly 'len' characters long.
+			// Destroys the environment on memory errors.
+         	sys_cputs((char *)a1, (size_t)a2);
+         	break;
+
+        case SYS_cgetc:
+        	// Read a character from the system console without blocking.
+			// Returns the character, or 0 if there is no input waiting.
+         	return sys_cgetc();
+         	break;
+
+        case SYS_getenvid:
+        	// Returns the current environment's envid.
+         	return sys_getenvid();
+         	break;
+
+        case SYS_env_destroy:
+        	// Destroy a given environment (possibly the currently running environment).
+			//
+			// Returns 0 on success, < 0 on error.  Errors are:
+			//	-E_BAD_ENV if environment envid doesn't currently exist,
+			//		or the caller doesn't have permission to change envid.
+         	return sys_env_destroy((envid_t) a1);
+         	break;
+
+		default:
+			//cprintf("default, -E_INVAL %d\n", -E_INVAL);
+			return -E_INVAL;
 	}
+
+	return 0;
 }
 
