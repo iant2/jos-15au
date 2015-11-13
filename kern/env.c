@@ -39,7 +39,7 @@ static struct Env *env_free_list;	// Free environment list
 
 
 // MERGE CONFLICT!!!!! LAB 3 AND LAB 4
-//struct Segdesc gdt[NCPU + 5] =
+struct Segdesc gdt[NCPU + 5] =
 
 
 /*
@@ -50,7 +50,7 @@ segment registers and helps to ensure that protected mode operates
 smoothly.
 */
 
-struct Segdesc gdt[] =
+
 {
 	// 0x0 - unused (always faults -- for trapping NULL far pointers)
 	SEG_NULL,
@@ -688,6 +688,7 @@ env_run(struct Env *e)
 	//	   registers and drop into user mode in the
 	//	   environment.
 
+	unlock_kernel();
 	// cprintf("pop trap frame \n");
 	// cprintf("%08x \n", e->env_tf.tf_eip);
 	env_pop_tf(&e->env_tf);

@@ -237,10 +237,11 @@ mem_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
 
-	// Initialize the SMP-related parts of the memory map
-	mem_init_mp();
 	// NOTE! THE WAS A MERGE CONFLICT BETWEEN LAB 3 AND 4
 	boot_map_region(kern_pgdir, KERNBASE, 0xFFFFFFFF - KERNBASE +1, 0, PTE_W);
+
+	// Initialize the SMP-related parts of the memory map
+	mem_init_mp();
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -285,10 +286,22 @@ mem_init_mp(void)
 	//     * [kstacktop_i - (KSTKSIZE + KSTKGAP), kstacktop_i - KSTKSIZE)
 	//          -- not backed; so if the kernel overflows its stack,
 	//             it will fault rather than overwrite another CPU's stack.
-	//             Known as a "guard page".
+	//             Known as a "guard page"
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
+	uintptr_t kstacktop_i;   	
+	for(int i = 0; i < NCPU; i++){
+
+		// CPU i's kernel stack grows down from virtual
+		// address kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP)
+  	    kstacktop_i = KSTACKTOP - i * (KSTKSIZE+KSTKGAP);
+
+  	    // [kstacktop_i - KSTKSIZE, kstacktop_i)
+		//          -- backed by physical memory
+  	    //boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+		boot_map_region(kern_pgdir, kstacktop_i - KSTKSIZE, KSTKSIZE, PADDR(percpu_kstacks[i]),PTE_W);
+	}
 
 }
 
@@ -307,9 +320,6 @@ mem_init_mp(void)
 void
 page_init(void)
 {
-	// LAB 4:
-	// Change your code to mark the physical page at MPENTRY_PADDR
-	// as in use
 
 	// The example code here marks all physical pages as free.
 	// However this is not truly the case.  What memory is free?
@@ -339,6 +349,17 @@ page_init(void)
 			// do nothing
 			continue;
 		}
+
+		// LAB 4:
+		// Change your code to mark the physical page at MPENTRY_PADDR
+		// as in use
+
+		
+		if (page_entry_pa == MPENTRY_PADDR){
+			// do nothing
+			continue;
+		}
+
 		
 		if(page_entry_pa >= EXTPHYSMEM && page_entry_pa < PADDR(boot_alloc(0))) {
 			//do nothing
@@ -698,15 +719,29 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// write-through) in addition to PTE_W.  (If you're interested
 	// in more details on this, see section 10.5 of IA32 volume
 	// 3A.)
-	//
+
 	// Be sure to round size up to a multiple of PGSIZE and to
 	// handle if this reservation would overflow MMIOLIM (it's
 	// okay to simply panic if this happens).
-	//
+
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	//panic("mmio_map_region not implemented");
+
+	size = ROUNDUP((uintptr_t)size, PGSIZE);
+	if ((base + size) > MMIOLIM)
+		panic("mmio_map_region: this reservation would overflow MMIOLIM!");
+
+	uintptr_t base_ptr;
+	base_ptr = base;
+	// define PTE_PWT		0x008	// Write-Through
+	// define PTE_PCD		0x010	// Cache-Disable
+	// boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+	boot_map_region(kern_pgdir, base_ptr, size, pa, PTE_PCD | PTE_PWT | PTE_W);
+
+	base += size;
+	return (void *)base_ptr;
 }
 
 static uintptr_t user_mem_check_addr;
@@ -847,6 +882,7 @@ check_page_free_list(bool only_low_memory)
 
 	assert(nfree_basemem > 0);
 	assert(nfree_extmem > 0);
+	cprintf("check_page_free_list succeeded! \n");
 }
 
 //
@@ -993,35 +1029,18 @@ check_kern_pgdir(void)
 	}
 
 	// check kernel stack
-<<<<<<< HEAD
 	// (updated in lab 4 to check per-CPU kernel stacks)
 	for (n = 0; n < NCPU; n++) {
 		uint32_t base = KSTACKTOP - (KSTKSIZE + KSTKGAP) * (n + 1);
-		for (i = 0; i < KSTKSIZE; i += PGSIZE)
+		for (i = 0; i < KSTKSIZE; i += PGSIZE){
+			//cprintf("check_va2pa(pgdir, base + KSTKGAP + i): %08x \n", check_va2pa(pgdir, base + KSTKGAP + i));
+			//cprintf("PADDR(percpu_kstacks[n]) + i): %08x \n", PADDR(percpu_kstacks[n]) + i);
 			assert(check_va2pa(pgdir, base + KSTKGAP + i)
 				== PADDR(percpu_kstacks[n]) + i);
+		}
 		for (i = 0; i < KSTKGAP; i += PGSIZE)
 			assert(check_va2pa(pgdir, base + i) == ~0);
 	}
-=======
-	//cprintf("kernal stack \n");
-	pdx = 0;
-	for (i = 0; i < KSTKSIZE; i += PGSIZE){
-		/*
-		if (PDX(KSTACKTOP - KSTKSIZE + i) != pdx){
-			//cprintf("entry %d \n", i / 4096);
-			cprintf("\t %d \t", PDX(KSTACKTOP - KSTKSIZE + i));
-			pdx = PDX(KSTACKTOP - KSTKSIZE + i);
-			//cprintf("pgdir_walk %08x \n", *(pgdir_walk(pgdir, (void *)(UPAGES + i), 0)));
-			//cprintf("PADDR(pages) + i: %08x \n", PADDR(pages) + i);
-			cprintf("\t %08x \t", PADDR(bootstack) + i);
-			cprintf("\t %08x \n", KSTACKTOP - KSTKSIZE + i);
-		}
-		*/
-		assert(check_va2pa(pgdir, KSTACKTOP - KSTKSIZE + i) == PADDR(bootstack) + i);
-	}
-	assert(check_va2pa(pgdir, KSTACKTOP - PTSIZE) == ~0);
->>>>>>> lab3
 
 	// check PDE permissions
 	for (i = 0; i < NPDENTRIES; i++) {

@@ -212,33 +212,56 @@ trap_init_percpu(void)
 	//   - The macro "thiscpu" always refers to the current CPU's
 	//     struct CpuInfo;
 	//   - The ID of the current CPU is given by cpunum();
+			// Index into cpus[]
+			// int cpunum(void);
+			// #define thiscpu (&cpus[cpunum()])
+
 	//   - Use "thiscpu->cpu_ts" as the TSS for the current CPU,
 	//     rather than the global "ts" variable;
+
 	//   - Use gdt[(GD_TSS0 >> 3) + i] for CPU i's TSS descriptor;
 	//   - You mapped the per-CPU kernel stacks in mem_init_mp()
 	//
 	// ltr sets a 'busy' flag in the TSS selector, so if you
 	// accidentally load the same TSS on more than one CPU, you'll
 	// get a triple fault.  If you set up an individual CPU's TSS
-	// wrong, you may not get a fault until you try to return from
+	// wrong, you may not get a fa1ult until you try to return from
 	// user space on that CPU.
 	//
 	// LAB 4: Your code here:
 
-	// Setup a TSS so that we get the right stack
-	// when we trap to the kernel.
+	/*
 	ts.ts_esp0 = KSTACKTOP;
 	ts.ts_ss0 = GD_KD;
-
 	// Initialize the TSS slot of the gdt.
 	gdt[GD_TSS0 >> 3] = SEG16(STS_T32A, (uint32_t) (&ts),
-					sizeof(struct Taskstate) - 1, 0);
+					sizeof(struct Taskstate), 0);
 	gdt[GD_TSS0 >> 3].sd_s = 0;
-
 	// Load the TSS selector (like other segment selectors, the
 	// bottom three bits are special; we leave them 0)
 	ltr(GD_TSS0);
+	// Load the IDT
+	lidt(&idt_pd);
+	*/
+	
+	// Use "thiscpu->cpu_ts" as the TSS for the current CPU,
+	// rather than the global "ts" variable;
 
+	struct Taskstate *taskstate = &(thiscpu->cpu_ts);
+
+	// Setup a TSS so that we get the right stack
+	// when we trap to the kernel.
+	thiscpu->cpu_ts.ts_esp0 = KSTACKTOP - ((KSTKSIZE + KSTKGAP) * cpunum());
+	thiscpu->cpu_ts.ts_ss0 = GD_KD;
+
+	// Initialize the TSS slot of the gdt.
+	gdt[(GD_TSS0 >> 3) + cpunum()] = SEG16(STS_T32A, (uint32_t) &(thiscpu->cpu_ts),
+					sizeof(struct Taskstate) - 1, 0);
+	gdt[(GD_TSS0 >> 3) + cpunum()].sd_s = 0;
+
+	// Load the TSS selector (like other segment selectors, the
+	// bottom three bits are special; we leave them 0)
+	ltr(GD_TSS0 + (cpunum() * sizeof(struct Segdesc)));
 	// Load the IDT
 	lidt(&idt_pd);
 }
@@ -297,13 +320,13 @@ trap_dispatch(struct Trapframe *tf)
 	struct PushRegs * pushRegs;
 	switch(tf->tf_trapno){
 		case T_PGFLT:
-			cprintf("page fault!\n");
+			//cprintf("page fault!\n");
 			return page_fault_handler(tf);
 		case T_BRKPT:
-			cprintf("breakpoint!\n");
+			//cprintf("breakpoint!\n");
 			return monitor(tf);
 		case T_SYSCALL:
-			cprintf("system call! \n");
+			//cprintf("system call! \n");
 			pushRegs = &tf->tf_regs;
 			//                            sys call number,  arguments......
 			pushRegs->reg_eax = syscall(pushRegs->reg_eax, pushRegs->reg_edx, pushRegs->reg_ecx, pushRegs->reg_ebx, pushRegs->reg_edi, pushRegs->reg_esi);
@@ -384,8 +407,10 @@ trap(struct Trapframe *tf)
 		// Acquire the big kernel lock before doing any
 		// serious kernel work.
 		// LAB 4: Your code here.
-		assert(curenv);
 
+		assert(curenv);
+		lock_kernel();
+		
 		// Garbage collect if current enviroment is a zombie
 		if (curenv->env_status == ENV_DYING) {
 			env_free(curenv);
