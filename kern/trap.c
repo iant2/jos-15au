@@ -463,14 +463,17 @@ page_fault_handler(struct Trapframe *tf)
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
 
+	// DONE
 	// Call the environment's page fault upcall, if one exists.  Set up a
 	// page fault stack frame on the user exception stack (below
 	// UXSTACKTOP), then branch to curenv->env_pgfault_upcall.
-	//
+
+	// DONE
 	// The page fault upcall might cause another page fault, in which case
 	// we branch to the page fault upcall recursively, pushing another
 	// page fault stack frame on top of the user exception stack.
-	//
+	
+	// DONE
 	// The trap handler needs one word of scratch space at the top of the
 	// trap-time stack in order to return.  In the non-recursive case, we
 	// don't have to worry about this because the top of the regular user
@@ -478,7 +481,8 @@ page_fault_handler(struct Trapframe *tf)
 	// an extra word between the current top of the exception stack and
 	// the new stack frame because the exception stack _is_ the trap-time
 	// stack.
-	//
+	
+	// DONE
 	// If there's no page fault upcall, the environment didn't allocate a
 	// page for its exception stack or can't write to it, or the exception
 	// stack overflows, then destroy the environment that caused the fault.
@@ -492,6 +496,41 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	struct UTrapframe * utrapframe;
+	if(curenv->env_pgfault_upcall){
+		// The JOS user exception stack is also one page in size, 
+		// and its top is defined to be at virtual address UXSTACKTOP, 
+		// so the valid bytes of the user exception stack are from 
+		// UXSTACKTOP-PGSIZE through UXSTACKTOP-1 inclusive
+		if (tf->tf_esp >= UXSTACKTOP - PGSIZE && tf->tf_esp < UXSTACKTOP) {
+			// If the user environment is already running on the user exception stack when an exception occurs, 
+			// then the page fault handler itself has faulted
+			// Dont forget to push an empty word before the trapframe
+			utrapframe = (struct UTrapframe *)(tf->tf_esp - sizeof(struct UTrapframe) - 4);
+		} else {
+			// this is the first exception
+			utrapframe = (struct UTrapframe *)(UXSTACKTOP - sizeof(struct UTrapframe));
+		}
+
+		//Be sure to take appropriate precautions when writing into the exception stack.
+		// user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
+		user_mem_assert(curenv, (void*)utrapframe, sizeof(struct UTrapframe), PTE_W | PTE_U | PTE_P);
+
+		//Set up a page fault stack frame on the user exception stack
+		utrapframe->utf_fault_va = fault_va;
+		utrapframe->utf_err = tf->tf_err;
+		utrapframe->utf_regs = tf->tf_regs;
+		utrapframe->utf_eip = tf->tf_eip;
+		utrapframe->utf_eflags = tf->tf_eflags;
+		utrapframe->utf_esp = tf->tf_esp;
+
+		// Call the environment's page fault upcall
+		curenv->env_tf.tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
+		curenv->env_tf.tf_esp = (uintptr_t)utrapframe;
+
+		//branch to curenv->env_pgfault_upcall
+		env_run(curenv);
+	}
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
