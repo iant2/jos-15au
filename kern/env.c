@@ -313,6 +313,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 
 	// Enable interrupts while in user mode.
 	// LAB 4: Your code here.
+	e->env_tf.tf_eflags |= FL_IF;
 
 	// Clear the page fault handler until user installs one.
 	e->env_pgfault_upcall = 0;
@@ -636,7 +637,8 @@ env_run(struct Env *e)
 
 	// LAB 3: Your code here.
 	// cprintf("switch statement \n");
-	if (curenv){
+	
+	/*if (curenv){
 		// step 1: if this is a context switch set the surrent 
 		// env to runnable if it is running
 		//TODO: figure out eedge cases with other states
@@ -671,7 +673,10 @@ env_run(struct Env *e)
 				panic("env_run: curenv doesnt have a type");
 
 		}
-	}
+	}*/
+
+	if(curenv && curenv->env_status == ENV_RUNNING)
+		curenv->env_status = ENV_RUNNABLE;
 
 	// cprintf("set up stuff \n");
 	// 2. Set 'curenv' to the new environment,

@@ -116,6 +116,12 @@ trap_init(void)
 	extern void trapHandlerEntry31();
 
 	extern void trapHandlerEntry48();
+	extern void trapHandlerEntryTimer();
+	extern void trapHandlerEntryKeyboard();
+	extern void trapHandlerEntrySpurious();
+	extern void trapHandlerEntryIDE();
+	extern void trapHandlerEntryError();
+	extern void trapHandlerEntrySerial();
 	// #define SETGATE(gate, istrap, sel, off, dpl)
 	// Set up a normal interrupt/trap gate descriptor.
 	// - istrap: 1 for a trap (= exception) gate
@@ -195,6 +201,13 @@ trap_init(void)
 
     // User invoking a system call, DPL=3
     SETGATE(idt[48], 0, 0x8, trapHandlerEntry48, 3);
+
+    SETGATE(idt[IRQ_OFFSET+IRQ_TIMER], 0, 0x8, trapHandlerEntryTimer, 0);
+    SETGATE(idt[IRQ_OFFSET+IRQ_KBD], 0, 0x8, trapHandlerEntryKeyboard, 0);
+    SETGATE(idt[IRQ_OFFSET+IRQ_SERIAL], 0, 0x8, trapHandlerEntrySerial, 0);
+    SETGATE(idt[IRQ_OFFSET+IRQ_SPURIOUS], 0, 0x8, trapHandlerEntrySpurious, 0);
+    SETGATE(idt[IRQ_OFFSET+IRQ_IDE], 0, 0x8, trapHandlerEntryIDE, 0);
+    SETGATE(idt[IRQ_OFFSET+IRQ_ERROR], 0, 0x8, trapHandlerEntryError, 0);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -325,6 +338,11 @@ trap_dispatch(struct Trapframe *tf)
 		case T_BRKPT:
 			//cprintf("breakpoint!\n");
 			return monitor(tf);
+		case IRQ_OFFSET + IRQ_TIMER:
+			//cprintf("IRQ_TIMER \n");
+			lapic_eoi();
+			time_tick();
+			return sched_yield();
 		case T_SYSCALL:
 			//cprintf("system call! \n");
 			pushRegs = &tf->tf_regs;
@@ -400,6 +418,7 @@ trap(struct Trapframe *tf)
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
+	//print_trapframe(tf);
 	assert(!(read_eflags() & FL_IF));
 
 	if ((tf->tf_cs & 3) == 3) {

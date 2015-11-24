@@ -299,7 +299,8 @@ static int
 sys_time_msec(void)
 {
 	// LAB 4: Your code here.
-	panic("sys_time_msec not implemented");
+	return time_msec();
+	//panic("sys_time_msec not implemented");
 }
 
 // Try to send 'value' to the target env 'envid'.
@@ -343,8 +344,83 @@ sys_time_msec(void)
 static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
+	//cprintf("inside send \n");
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	struct Env * env;
+	int res;
+	
+	//cprintf("get dest env \n");
+	res = envid2env(envid, &env, 0);
+	if (res < 0){
+		//cprintf("env is bad \n");
+		return -E_BAD_ENV;
+	}
+	if(env->env_ipc_recving == 0){
+		//cprintf("if is not recieving\n");
+		return -E_IPC_NOT_RECV;
+	}
+
+	//cprintf("map page\n");
+	if((uintptr_t)srcva < UTOP && (uintptr_t)env->env_ipc_dstva < UTOP){
+		//	-E_INVAL if srcva < UTOP but srcva is not page-aligned.
+		if((uintptr_t)srcva != ROUNDDOWN((uintptr_t)srcva, PGSIZE))
+			return -E_INVAL;
+
+		//	-E_INVAL if srcva < UTOP and perm is inappropriate
+		//		(see sys_page_alloc).
+		if(!(perm & PTE_U) || !(perm & PTE_P) || (perm & ~PTE_SYSCALL))
+			return -E_INVAL;
+
+		//	-E_INVAL if srcva < UTOP but srcva is not mapped in the caller's
+		//		address space.
+		struct PageInfo * pp;
+		pte_t * page_table_entry;
+		pp = page_lookup(curenv->env_pgdir, srcva, &page_table_entry);
+		if (!pp)
+			return -E_INVAL;
+
+		//	-E_INVAL if (perm & PTE_W), but srcva is read-only in the
+		//		current environment's address space.
+		if(!(*page_table_entry & PTE_W) && (perm & PTE_W))
+			return -E_INVAL;
+
+		//	-E_NO_MEM if there's not enough memory to map srcva in envid's
+		//		address space.
+		if((res = page_insert(env->env_pgdir, pp, env->env_ipc_dstva, perm)) < 0){
+			return res;
+		}
+	}
+
+	// Otherwise, the send succeeds, and the target's ipc fields are
+	// updated as follows:
+	//    env_ipc_recving is set to 0 to block future sends;
+	//    env_ipc_from is set to the sending envid;
+	//    env_ipc_value is set to the 'value' parameter;
+	//    env_ipc_perm is set to 'perm' if a page was transferred, 0 otherwise
+	//cprintf("send succeeds \n");
+	
+	env->env_ipc_recving = 0; //is set to 0 to block future sends;
+	env->env_ipc_from = curenv->env_id; //is set to the sending envid;
+	env->env_ipc_value = value; //is set to the 'value' parameter;
+	
+	if ((uintptr_t)srcva < UTOP){
+		env->env_ipc_perm = perm;
+	} else {
+		env->env_ipc_perm = 0;
+	} //is set to 'perm' if a page was transferred, 0 otherwise
+	
+	//cprintf("set status \n");
+	/*
+	res = sys_env_set_status(envid, ENV_RUNNABLE);
+	if (res < 0){
+		//cprintf("set status failed \n");
+		return res;
+	}*/
+	env->env_status = ENV_RUNNABLE;
+
+	//cprintf("yay \n");
+	return 0;
+	//panic("sys_ipc_try_send not implemented");
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -362,7 +438,24 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+	//panic("sys_ipc_recv not implemented");
+	int res;
+	//cprintf("inside sys_ipc_rec\n");
+	if((uintptr_t)dstva < UTOP && dstva != ROUNDDOWN(dstva, PGSIZE)){
+		cprintf("bad dstva\n");
+		return -E_INVAL;
+	}
+
+	//cprintf("mark runnable\n");
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	//sys_env_set_status(0, ENV_NOT_RUNNABLE);
+	curenv->env_ipc_recving = 1;
+	curenv->env_ipc_dstva = dstva;
+
+	//cprintf("env id %d \n", curenv->env_id);
+	curenv->env_tf.tf_regs.reg_eax = 0;
+	sched_yield();
+	//cprintf("return\n");
 	return 0;
 }
 
@@ -444,7 +537,19 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		case SYS_env_set_pgfault_upcall:
 			return sys_env_set_pgfault_upcall(a1, (void *)a2);
 			break;
+
+		case SYS_time_msec:
+			return sys_time_msec();
+			break;
 		
+		case SYS_ipc_try_send:
+			return sys_ipc_try_send(a1, a2, (void*)a3, a4);
+			break;
+
+		case SYS_ipc_recv:
+			return sys_ipc_recv((void*)a1);
+			break;
+
 		default:
 			//cprintf("default, -E_INVAL %d\n", -E_INVAL);
 			return -E_INVAL;

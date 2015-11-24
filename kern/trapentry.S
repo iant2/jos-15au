@@ -86,6 +86,13 @@
  //system call from the user
  TRAPHANDLER_NOEC(trapHandlerEntry48, T_SYSCALL);
 
+ TRAPHANDLER_NOEC(trapHandlerEntryTimer, IRQ_OFFSET+IRQ_TIMER);
+ TRAPHANDLER_NOEC(trapHandlerEntryKeyboard, IRQ_OFFSET+IRQ_KBD);
+ TRAPHANDLER_NOEC(trapHandlerEntrySpurious, IRQ_OFFSET+IRQ_SPURIOUS);
+ TRAPHANDLER_NOEC(trapHandlerEntryIDE, IRQ_OFFSET+IRQ_IDE);
+ TRAPHANDLER_NOEC(trapHandlerEntryError, IRQ_OFFSET+IRQ_ERROR);
+ TRAPHANDLER_NOEC(trapHandlerEntrySerial, IRQ_OFFSET+IRQ_SERIAL);
+
 
 /*
  * Lab 3: Your code here for _alltraps
