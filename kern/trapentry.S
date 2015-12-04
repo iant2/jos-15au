@@ -44,10 +44,76 @@
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
+ TRAPHANDLER_NOEC(trapHandlerEntry0,T_DIVIDE);
+ TRAPHANDLER_NOEC(trapHandlerEntry1,T_DEBUG);
+ TRAPHANDLER_NOEC(trapHandlerEntry2,T_NMI);
+ TRAPHANDLER_NOEC(trapHandlerEntry3,T_BRKPT);
+ TRAPHANDLER_NOEC(trapHandlerEntry4,T_OFLOW);
+ TRAPHANDLER_NOEC(trapHandlerEntry5,T_BOUND);
+ TRAPHANDLER_NOEC(trapHandlerEntry6,T_ILLOP);
+ TRAPHANDLER_NOEC(trapHandlerEntry7,T_DEVICE);
+ 
+ TRAPHANDLER(trapHandlerEntry8,T_DBLFLT);
 
+ // no 9 (T_COPROC)
+
+ TRAPHANDLER(trapHandlerEntry10,T_TSS);
+ TRAPHANDLER(trapHandlerEntry11,T_SEGNP);
+ TRAPHANDLER(trapHandlerEntry12,T_STACK);
+ TRAPHANDLER(trapHandlerEntry13,T_GPFLT);
+ TRAPHANDLER(trapHandlerEntry14,T_PGFLT);
+
+ // no 15 (T_RES)
+
+ TRAPHANDLER_NOEC(trapHandlerEntry16,T_FPERR);
+ TRAPHANDLER_NOEC(trapHandlerEntry17,T_ALIGN);
+ TRAPHANDLER_NOEC(trapHandlerEntry18,T_MCHK);
+ TRAPHANDLER_NOEC(trapHandlerEntry19,T_SIMDERR);
+ TRAPHANDLER_NOEC(trapHandlerEntry20, 20);
+ 
+ TRAPHANDLER(trapHandlerEntry21, 21);
+ TRAPHANDLER(trapHandlerEntry22, 22);
+ TRAPHANDLER(trapHandlerEntry23, 23);
+ TRAPHANDLER(trapHandlerEntry24, 24);
+ TRAPHANDLER(trapHandlerEntry25, 25);
+ TRAPHANDLER(trapHandlerEntry26, 26);
+ TRAPHANDLER(trapHandlerEntry27, 27);
+ TRAPHANDLER(trapHandlerEntry28, 28);
+ TRAPHANDLER(trapHandlerEntry29, 29);
+ TRAPHANDLER(trapHandlerEntry30, 30);
+ TRAPHANDLER(trapHandlerEntry31, 31);
+
+ //system call from the user
+ TRAPHANDLER_NOEC(trapHandlerEntry48, T_SYSCALL);
+
+ TRAPHANDLER_NOEC(trapHandlerEntryTimer, IRQ_OFFSET+IRQ_TIMER);
+ TRAPHANDLER_NOEC(trapHandlerEntryKeyboard, IRQ_OFFSET+IRQ_KBD);
+ TRAPHANDLER_NOEC(trapHandlerEntrySpurious, IRQ_OFFSET+IRQ_SPURIOUS);
+ TRAPHANDLER_NOEC(trapHandlerEntryIDE, IRQ_OFFSET+IRQ_IDE);
+ TRAPHANDLER_NOEC(trapHandlerEntryError, IRQ_OFFSET+IRQ_ERROR);
+ TRAPHANDLER_NOEC(trapHandlerEntrySerial, IRQ_OFFSET+IRQ_SERIAL);
 
 
 /*
  * Lab 3: Your code here for _alltraps
+ * 
  */
+ _alltraps:
+ 	pushl %ds
+	pushl %es
 
+	// push values to make the stack look like a struct Trapframe
+	pushal
+	// load GD_KD into %ds and %es
+	// define GD_KD     0x10     // kernel data
+	movl $GD_KD, %eax
+	movw %ax, %ds
+	movw %ax, %es
+
+	// pushl %esp to pass a pointer to the Trapframe as an argument to trap()
+	pushl %esp
+
+	// call trap
+	call trap
+
+	// can trap return?

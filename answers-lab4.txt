@@ -1,0 +1,35 @@
+Ian Turner 
+lab 4 written answers
+this lab took me over 20 hours, and i worked with Dylan Johnson 
+
+
+question 1) Compare kern/mpentry.S side by side with boot/boot.S. Bearing in mind that kern/mpentry.S is compiled and linked to run above KERNBASE just like everything else in the kernel, what is the purpose of macro MPBOOTPHYS? Why is it necessary in kern/mpentry.S but not in boot/boot.S? In other words, what could go wrong if it were omitted in kern/mpentry.S?
+Hint: recall the differences between the link address and the load address that we have discussed in Lab 1.
+/* for personal use, not my answer */
+The load address of a section is the memory address at which that section should be loaded into memory.
+The link address of a section is the memory address from which the section expects to execute. The linker encodes the link address in the binary in various ways, such as when the code needs the address of a global variable, with the result that a binary usually won’t work if it is executing from an address that it is not linked for. (It is possible to generate position-independent code that does not contain any such absolute addresses. This is used extensively by modern shared libraries, but it has performance and complexity costs, so we won’t be using it in JOS.)
+#define MPBOOTPHYS(s) ((s) - mpentry_start + MPENTRY_PADDR)
+/*for personal use, not my asnwer*/
+
+answer:
+Since boot.S was ran before we got to entry.S and enabled vm, we could set things like the GDT without using any kind of translation macro. Once we are using vm we need MPBOOTPHYS becuase the linking address isnt correct unless we make a translation to the actual physical address (off of MPENTRY_PADDR). With out MPBOOTPHYS the linker will connect the link address of the section incorrectly (to the wrong pa).
+
+
+
+Questions 2:It seems that using the big kernel lock guarantees that only one CPU can run the kernel code at a time. Why do we still need separate kernel stacks for each CPU? Describe a scenario in which using a shared kernel stack will go wrong, even with the protection of the big kernel lock.
+Answer: No matter if the big kernel lock is aquired, an env with push a trap frame onto the stack in trapEntry.S before calling stack, this means a process could be given the wrong info when returning to user mode after handling a trap (if they were alowed to resume that is).
+
+Question 3
+In your implementation of env_run() you should have called lcr3(). Before and after the call to lcr3(), your code makes references (at least it should) to the variable e, the argument to env_run. Upon loading the %cr3 register, the addressing context used by the MMU is instantly changed. But a virtual address (namely e) has meaning relative to a given address context–the address context specifies the physical address to which the virtual address maps. Why can the pointer e be dereferenced both before and after the addressing switch?
+Answer:This is because kernal memory is the same across all envs!
+
+Question 4
+Whenever the kernel switches from one environment to another, it must ensure the old environment’s registers are saved so they can be restored properly later. Why? Where does this happen?
+Answer: This is beacuase the onld envs need to save their registers in order to pick up where they left off when they start again.
+		// HAPPENS HERE
+		// Copy trap frame (which is currently on the stack)
+		// into 'curenv->env_tf', so that running the environment
+		// will restart at the trap point.
+		curenv->env_tf = *tf;
+
+
