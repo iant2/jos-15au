@@ -1,0 +1,7 @@
+Ian Turner
+I worked with Dylan Johnson and it took us 12 hours on this lab.\
+
+question 1:Do you have to do anything else to ensure that this access setting is saved and restored properly when you subsequently switch from one environment to another? Why?
+
+
+No becuase fs is the only one who has access to the disk MMIO in at address space, we dont need need to do anything becuase each env uses its own page directory so it is not necessary to make any changes.
