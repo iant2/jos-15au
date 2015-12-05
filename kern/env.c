@@ -13,6 +13,7 @@
 #include <kern/monitor.h>
 #include <kern/sched.h>
 #include <kern/cpu.h>
+#include <kern/pci.h>
 #include <kern/spinlock.h>
 
 struct Env *envs = NULL;		// All environments
@@ -513,6 +514,25 @@ env_create(uint8_t *binary, enum EnvType type)
 	// allocated a new environment
 	if(env_alloc(&e, 0) < 0)
 		panic("env_create: environment failed to allocate");
+
+	if (type == ENV_TYPE_FS){
+		uintptr_t va = UMMIOAHCI;
+		uintptr_t pa = (uintptr_t)ahci_va;
+		pte_t * page_table_entry;
+		physaddr_t mmio_base;
+		struct PageInfo * pp;
+
+		pte_t * temp = pgdir_walk(e->env_pgdir, (void *) pa, 1);
+
+		mmio_base = *temp;
+		// find the page table corresponding to this virtual address
+		page_table_entry = pgdir_walk(e->env_pgdir, (void *) va, 1);
+		
+		// change actuall entry in page table to the corresponding physical address
+		// use the permission bits given by the caller and the "present" bit
+		*page_table_entry = mmio_base | PTE_W | PTE_U | PTE_P;
+	}
+
 
 	// load the named elf binary into it with load_icode
 	load_icode(e, binary);

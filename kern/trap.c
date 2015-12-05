@@ -338,6 +338,10 @@ trap_dispatch(struct Trapframe *tf)
 		case T_BRKPT:
 			//cprintf("breakpoint!\n");
 			return monitor(tf);
+		case IRQ_OFFSET + IRQ_KBD:
+			return kbd_intr();
+		case IRQ_OFFSET + IRQ_SERIAL:
+			return serial_intr();
 		case IRQ_OFFSET + IRQ_TIMER:
 			//cprintf("IRQ_TIMER \n");
 			lapic_eoi();

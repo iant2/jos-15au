@@ -95,7 +95,7 @@ duppage(envid_t envid, unsigned pn)
 	int r;
 	void * virt_page_addr = (void *)(pn*PGSIZE);
 	// check if the page is writeable or copy on write
-	if((uvpt[pn] & PTE_W) || ((uvpt[pn]) & PTE_COW)){
+	if(!(uvpt[pn] & PTE_SHARE) && ((uvpt[pn] & PTE_W) || ((uvpt[pn]) & PTE_COW))){
 		/*
 		if ((uvpt[pn] & PTE_W)){
 			cprintf("new page is writable!\n");
@@ -116,7 +116,11 @@ duppage(envid_t envid, unsigned pn)
 	} else {
 		// not writeable or copy on write, new page doesnt need to be COW,
 		// and we dont need mark our page COW again
-		r = sys_page_map(0, virt_page_addr, envid, virt_page_addr, PTE_U | PTE_P);
+		int perm = PTE_U | PTE_P;
+		if (uvpt[pn] & PTE_SHARE)
+			perm |= PTE_SHARE;
+
+		r = sys_page_map(0, virt_page_addr, envid, virt_page_addr, (uvpt[pn] & PTE_SYSCALL) | perm);
 		if (r < 0)
 			return r; 
 	}

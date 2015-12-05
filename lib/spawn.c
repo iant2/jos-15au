@@ -301,6 +301,29 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
+
+	int pde;
+	int pte;
+	for (pde = 0; pde < PDX(UTOP); pde++) {
+		for (pte = pde * NPTENTRIES; pte < (pde * NPTENTRIES) + NPTENTRIES; pte++) {
+			
+			if ((uvpd[pde] & PTE_P) && (uvpt[pte] & PTE_P)){
+				//cprintf("copy page! \n");
+				if (uvpt[pte] & PTE_SHARE)
+					sys_page_map(0, (void*)(pte * PGSIZE), child, (void*)(pte * PGSIZE), (uvpt[pte] & PTE_SYSCALL) | PTE_SHARE);
+			}
+		}
+
+		/*
+		cprintf("increment address \n");
+		cprintf("PDX(UTOP): %d \n", PDX(UTOP));
+		cprintf("pde: %d \n", pde);
+		cprintf("pte: %d \n", pte);
+		*/
+	}
+
+
+
 	return 0;
 }
 
