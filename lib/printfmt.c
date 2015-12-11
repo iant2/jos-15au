@@ -236,6 +236,12 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			putch(ch, putdat);
 			break;
 
+		// text color 
+		case 'z':
+			text_color = (int)getuint(&ap, lflag);
+			// weve change the color of the subsequent text, break out
+			break;
+
 		// unrecognized escape sequence - just print it literally
 		default:
 			putch('%', putdat);

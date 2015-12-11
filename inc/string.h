@@ -3,6 +3,9 @@
 
 #include <inc/types.h>
 
+//global variable for text color
+int text_color;
+
 int	strlen(const char *s);
 int	strnlen(const char *s, size_t size);
 char *	strcpy(char *dst, const char *src);
