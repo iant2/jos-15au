@@ -77,6 +77,7 @@ void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
+	/*
 
 	extern void trapHandlerEntry0();
 	extern void trapHandlerEntry1();
@@ -189,6 +190,26 @@ trap_init(void)
 
     // User invoking a system call, DPL=3
     SETGATE(idt[48], 0, 0x8, trapHandlerEntry48, 3);
+    */
+
+    // challenge, code used based on trap.c in xv6
+    extern int vectors[];
+
+  int i;
+  int j;
+  for(i = 0, j =0; i <= 29; i++, j++){
+    if (i == 9 || i == 15)
+      j ++;
+    
+    if (i == 3){
+      SETGATE(idt[j], 0, 0x8, vectors[i], 3);
+    }	else {
+      SETGATE(idt[j], 0, 0x8, vectors[i], 0);
+    }    
+  }
+
+	SETGATE(idt[T_SYSCALL], 0, 0X8, vectors[30], 3);
+
 	// Per-CPU setup 
 	trap_init_percpu();
 }

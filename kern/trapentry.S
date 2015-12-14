@@ -19,26 +19,36 @@
  * where NAME is the argument passed to TRAPHANDLER.
  */
 #define TRAPHANDLER(name, num)						\
-	.globl name;		/* define global symbol for 'name' */	\
-	.type name, @function;	/* symbol type is function */		\
-	.align 2;		/* align function definition */		\
-	name:			/* function starts here */		\
-	pushl $(num);							\
-	jmp _alltraps
+    .text;								\
+	  .globl name;		/* define global symbol for 'name' */	\
+	  .type name, @function;	/* symbol type is function */		\
+	  .align 2;		/* align function definition */		\
+	  name:			/* function starts here */		\
+	  pushl $(num);							\
+	  jmp _alltraps;							\
+    .data;								\
+    .long name
 
 /* Use TRAPHANDLER_NOEC for traps where the CPU doesn't push an error code.
  * It pushes a 0 in place of the error code, so the trap frame has the same
  * format in either case.
  */
 #define TRAPHANDLER_NOEC(name, num)					\
+  .text;								\
 	.globl name;							\
 	.type name, @function;						\
 	.align 2;							\
 	name:								\
 	pushl $0;							\
 	pushl $(num);							\
-	jmp _alltraps
+	jmp _alltraps;							\
+  .data;								\
+  .long name
 
+#challenge
+.data
+.globl vectors
+vectors:
 .text
 
 /*
@@ -52,10 +62,9 @@
  TRAPHANDLER_NOEC(trapHandlerEntry5,T_BOUND);
  TRAPHANDLER_NOEC(trapHandlerEntry6,T_ILLOP);
  TRAPHANDLER_NOEC(trapHandlerEntry7,T_DEVICE);
- 
  TRAPHANDLER(trapHandlerEntry8,T_DBLFLT);
 
- // no 9 (T_COPROC)
+ 
 
  TRAPHANDLER(trapHandlerEntry10,T_TSS);
  TRAPHANDLER(trapHandlerEntry11,T_SEGNP);
@@ -63,7 +72,7 @@
  TRAPHANDLER(trapHandlerEntry13,T_GPFLT);
  TRAPHANDLER(trapHandlerEntry14,T_PGFLT);
 
- // no 15 (T_RES)
+
 
  TRAPHANDLER_NOEC(trapHandlerEntry16,T_FPERR);
  TRAPHANDLER_NOEC(trapHandlerEntry17,T_ALIGN);
@@ -85,6 +94,7 @@
 
  //system call from the user
  TRAPHANDLER_NOEC(trapHandlerEntry48, T_SYSCALL);
+
 
 
 /*
