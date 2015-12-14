@@ -169,11 +169,11 @@ monitor(struct Trapframe *tf)
 	cprintf("Type 'help' for a list of commands.\n");
 
 	cprintf("%zthis text is blue\n", 0x0100);
-	cprintf("%zthis text is orange\n", 0x0600);
+	cprintf("%zthis text is green\n", 0x0200);
 	cprintf("%zthis text is cyan\n", 0x0300);
+	cprintf("%zthis text is orange\n", 0x0600);
+	cprintf("%zthis text is red\n", 0x0400);
 	cprintf("%zthis text is gray\n", 0x0800);
-    cprintf("%zthis text is red\n", 0x0400);
-    cprintf("%zthis text is green\n", 0x0200);
 
 
 	while (1) {
