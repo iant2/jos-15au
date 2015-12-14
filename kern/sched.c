@@ -31,19 +31,31 @@ sched_yield(void)
 	// LAB 4: Your code here.
 
     int index = 0;
+    int priority = 0;
     if (curenv){
     	index = ENVX(curenv->env_id);
+    	priority = curenv->env_priority;
     }
 
+    struct Env * maxEnv;
+
+    maxEnv = NULL;
+    
 	for (int i = 0; i < NENV; i++) {
         index = (index + 1) % NENV;
         //cprintf("%d \n",i);
-        if (envs[index].env_status == ENV_RUNNABLE)
-            env_run(&envs[index]);
+        if (envs[index].env_status == ENV_RUNNABLE && envs[index].env_priority > priority)
+            maxEnv = &envs[index];
 	}
 
     if (curenv && curenv->env_status == ENV_RUNNING) {
-        env_run(curenv);
+    	if (maxEnv == NULL) {
+    		env_run(curenv);
+    	}
+    }
+
+    if(maxEnv){
+    	env_run(maxEnv);
     }
 
     //cprintf("halting! \n");

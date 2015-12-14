@@ -200,6 +200,72 @@ fork(void)
 	return child;
 }
 
+// challenge, set the priority of the child, pretty identicle to fork
+envid_t
+pfork(int priority)
+{
+	// LAB 4: Your code here.
+	//panic("fork not implemented");
+
+	// Set up our page fault handler appropriately.
+	set_pgfault_handler(pgfault);
+
+	// Create a child.
+	envid_t child;
+	child = sys_exofork(); // sets eax to 0 for child
+	if (child < 0)
+		panic("fork: error on child creation! \n");
+
+	if (child == 0) {
+		// We're the child.
+		// The copied value of the global variable 'thisenv'
+		// is no longer valid (it refers to the parent!).
+		// Fix it and return 0.
+
+		// challenge: set the priority of the child
+		thisenv = &envs[ENVX(sys_getenvid())];
+
+		sys_env_priority(priority);
+		return 0;
+	}
+
+	// Copy our address space and page fault handler setup to the child.
+	int pde;
+	int pte;
+	for (pde = 0; pde < PDX(UTOP); pde++) {
+		for (pte = pde * NPTENTRIES; pte < (pde * NPTENTRIES) + NPTENTRIES; pte++) {
+			if (pde == PDX(UXSTACKTOP-PGSIZE) && pte == PGNUM(UXSTACKTOP-PGSIZE))
+				continue; // userexception stack should NOT be marked COW
+			if ((uvpd[pde] & PTE_P) && (uvpt[pte] & PTE_P)){
+				//cprintf("copy page! \n");
+				duppage(child, pte);
+			}
+		}
+
+		/*
+		cprintf("increment address \n");
+		cprintf("PDX(UTOP): %d \n", PDX(UTOP));
+		cprintf("pde: %d \n", pde);
+		cprintf("pte: %d \n", pte);
+		*/
+	}
+	//cprintf("allocate expection stack \n");
+	//  Neither user exception stack should ever be marked copy-on-write,
+	//  so you must allocate a new page for the child's user exception stack.
+	sys_page_alloc(child, (void *)(UXSTACKTOP - PGSIZE), PTE_W | PTE_U | PTE_P);
+	//cprintf("expection stack allocated\n");
+	//cprintf("UXSTACKTOP-PGSIZE: %08x  \n", UXSTACKTOP - PGSIZE);
+
+	// Then mark the child as runnable and return.
+	sys_env_set_pgfault_upcall(child, thisenv->env_pgfault_upcall);
+	sys_env_set_status(child, ENV_RUNNABLE);
+	//cprintf("return child id \n");
+	
+	return child;
+}
+
+
+
 // Challenge!
 int
 sfork(void)

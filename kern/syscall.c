@@ -459,6 +459,11 @@ sys_ipc_recv(void *dstva)
 	return 0;
 }
 
+static int sys_env_priority(int priority){
+	curenv->env_priority = priority;
+	return 0;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -548,6 +553,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 
 		case SYS_ipc_recv:
 			return sys_ipc_recv((void*)a1);
+			break;
+
+		case SYS_env_priority:
+			return sys_env_priority((int)a1):
 			break;
 
 		default:
