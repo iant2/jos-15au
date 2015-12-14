@@ -44,12 +44,15 @@ sched_yield(void)
 	for (int i = 0; i < NENV; i++) {
         index = (index + 1) % NENV;
         //cprintf("%d \n",i);
-        if (envs[index].env_status == ENV_RUNNABLE && envs[index].env_priority > priority)
+        if (envs[index].env_status == ENV_RUNNABLE && (envs[index].env_priority > priority || !maxEnv))
             maxEnv = &envs[index];
 	}
 
     if (curenv && curenv->env_status == ENV_RUNNING) {
     	if (maxEnv == NULL) {
+    		env_run(curenv);
+    	}
+    	if (curenv->env_priority > maxEnv->env_priority){
     		env_run(curenv);
     	}
     }
